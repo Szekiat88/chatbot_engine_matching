@@ -1,0 +1,113 @@
+{
+  "iphone_stock": [
+    {
+      "model": "iPhone 15",
+      "colors": ["Black", "Blue", "Green", "Yellow", "Pink"],
+      "storage_price": {
+        "128GB": 3899,
+        "256GB": 4299
+      }
+    },
+    {
+      "model": "iPhone 15 Plus",
+      "colors": ["Black", "Blue", "Green"],
+      "storage_price": {
+        "128GB": 4299,
+        "256GB": 4699
+      }
+    },
+    {
+      "model": "iPhone 15 Pro",
+      "colors": ["Natural Titanium", "Black Titanium", "Blue Titanium"],
+      "storage_price": {
+        "128GB": 4899,
+        "256GB": 5399,
+        "512GB": 5999
+      }
+    },
+    {
+      "model": "iPhone 15 Pro Max",
+      "colors": ["Natural Titanium", "Black Titanium"],
+      "storage_price": {
+        "256GB": 5899,
+        "512GB": 6499
+      }
+    },
+    {
+      "model": "iPhone 14",
+      "colors": ["Midnight", "Blue", "Purple", "Red"],
+      "storage_price": {
+        "128GB": 3299,
+        "256GB": 3699
+      }
+    },
+    {
+      "model": "iPhone 14 Plus",
+      "colors": ["Midnight", "Blue"],
+      "storage_price": {
+        "128GB": 3599
+      }
+    },
+    {
+      "model": "iPhone 14 Pro",
+      "colors": ["Deep Purple", "Space Black", "Silver"],
+      "storage_price": {
+        "128GB": 4099,
+        "256GB": 4599
+      }
+    },
+    {
+      "model": "iPhone 14 Pro Max",
+      "colors": ["Deep Purple", "Space Black"],
+      "storage_price": {
+        "256GB": 4899
+      }
+    },
+    {
+      "model": "iPhone 13",
+      "colors": ["Midnight", "Starlight", "Blue", "Pink"],
+      "storage_price": {
+        "128GB": 2899,
+        "256GB": 3299
+      }
+    },
+    {
+      "model": "iPhone 13 Pro",
+      "colors": ["Graphite", "Sierra Blue"],
+      "storage_price": {
+        "256GB": 3799
+      }
+    },
+    {
+      "model": "iPhone 13 Pro Max",
+      "colors": ["Graphite"],
+      "storage_price": {
+        "256GB": 4199
+      }
+    },
+    {
+      "model": "iPhone 12",
+      "colors": ["Black", "White"],
+      "storage_price": {
+        "64GB": 1999,
+        "128GB": 2299
+      }
+    },
+    {
+      "model": "iPhone 12 Pro",
+      "colors": ["Pacific Blue", "Graphite"],
+      "storage_price": {
+        "128GB": 2599,
+        "256GB": 2999
+      }
+    },
+    {
+      "model": "iPhone SE (3rd Gen)",
+      "colors": ["Midnight", "Starlight", "Red"],
+      "storage_price": {
+        "64GB": 1699,
+        "128GB": 1999
+      }
+    }
+  ]
+}
