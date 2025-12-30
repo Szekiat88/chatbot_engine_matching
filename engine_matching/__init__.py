@@ -351,20 +351,27 @@ def find_relevant_history_reply(
 def summarize_conversation(
     conversation_history: Iterable[str],
     provider: str = "gemini",
+    previous_summary: str = "",
 ) -> str:
     """Summarize a conversation transcript using the specified provider."""
 
     _ensure_access_allowed()
 
     history_lines = [str(message).strip() for message in conversation_history if str(message).strip()]
+    cleaned_previous_summary = previous_summary.strip()
     if not history_lines:
-        return ""
+        return cleaned_previous_summary
 
     transcript = "\n".join(history_lines)
+    summary_section = ""
+    if cleaned_previous_summary:
+        summary_section = f"Previous summary:\n\"\"\"\n{cleaned_previous_summary}\n\"\"\"\n\n"
     prompt = (
-        "You are assisting a Compasia support agent. Summarize the conversation below in two to three sentences, "
-        "focusing on the customer's request and any guidance already provided. Keep the wording concise and neutral.\n\n"
-        f"Conversation transcript:\n\"\"\"\n{transcript}\n\"\"\""
+        "You are assisting a Compasia support agent. Update the existing summary with the new conversation "
+        "messages below. Provide a concise, neutral summary in two to three sentences, focusing on the "
+        "customer's request and any guidance already provided. Avoid repeating sentences.\n\n"
+        f"{summary_section}"
+        f"New conversation transcript:\n\"\"\"\n{transcript}\n\"\"\""
     )
 
     provider_name = provider.lower()
@@ -384,7 +391,10 @@ def summarize_conversation(
             messages=[
                 {
                     "role": "system",
-                    "content": "Summarize the provided conversation in plain text (no JSON) using no more than three sentences.",
+                    "content": (
+                        "Update the provided conversation summary in plain text (no JSON) using no more than "
+                        "three sentences."
+                    ),
                 },
                 {"role": "user", "content": prompt},
             ],

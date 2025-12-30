@@ -233,11 +233,16 @@ def summarize_endpoint() -> tuple[Any, int]:
     payload = request.get_json(silent=True) or {}
     conversation_history = payload.get("conversation_history", [])
     provider = payload.get("provider", "gemini")
+    previous_summary = payload.get("previous_summary", "")
 
     if not isinstance(conversation_history, list):
         return jsonify({"error": "conversation_history must be a list."}), 400
 
-    summary = summarize_conversation(conversation_history, provider=provider)
+    summary = summarize_conversation(
+        conversation_history,
+        provider=provider,
+        previous_summary=previous_summary,
+    )
     return jsonify({"summary": summary}), 200
 
 
