@@ -232,11 +232,24 @@ def history_reply_keyword_endpoint() -> tuple[Any, int]:
 def summarize_endpoint() -> tuple[Any, int]:
     payload = request.get_json(silent=True) or {}
     conversation_history = payload.get("conversation_history", [])
+    question = payload.get("question", "")
+    answer = payload.get("answer", "")
     provider = payload.get("provider", "gemini")
     previous_summary = payload.get("previous_summary", "")
 
     if not isinstance(conversation_history, list):
         return jsonify({"error": "conversation_history must be a list."}), 400
+    if question and not isinstance(question, str):
+        return jsonify({"error": "question must be a string."}), 400
+    if answer and not isinstance(answer, str):
+        return jsonify({"error": "answer must be a string."}), 400
+
+    if not conversation_history and (question.strip() or answer.strip()):
+        conversation_history = []
+        if question.strip():
+            conversation_history.append(f"Customer: {question.strip()}")
+        if answer.strip():
+            conversation_history.append(f"Agent: {answer.strip()}")
 
     summary = summarize_conversation(
         conversation_history,
