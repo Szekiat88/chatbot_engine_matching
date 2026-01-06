@@ -369,7 +369,10 @@ def summarize_conversation(
     prompt = (
         "You are assisting a Compasia support agent. Update the existing summary with the new conversation "
         "messages below. Provide a concise, neutral summary in two to three sentences, focusing on the "
-        "customer's request and any guidance already provided. Avoid repeating sentences.\n\n"
+        "customer's request and any guidance already provided. Avoid repeating sentences. "
+        "If the user shows interest in buying a phone or asks about phone functionality, append a final line "
+        "at the bottom of the summary to capture desired phone type and specs, using the format "
+        "\"Desired phone type/specs: <details or needed>\".\n\n"
         f"{summary_section}"
         f"New conversation transcript:\n\"\"\"\n{transcript}\n\"\"\""
     )
