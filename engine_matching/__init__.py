@@ -160,6 +160,17 @@ Rules:
 - Propose 1 models only
 - Ask ONE follow-up question
 - Sound natural and polite
+- If the customer has clearly confirmed intent to buy and has specified the exact model, storage, and color,
+  respond ONLY with a JSON object containing:
+  {
+    "phone_type": <model>,
+    "price": <number from available stock>,
+    "color": <color>,
+    "storage": <storage>,
+    "send_shopify_link": true,
+    "shopify_link": "https://compasia.my/products/<phone_type>-<storage>"
+  }
+  Do not include any extra text when returning this JSON.
 
 {summary_section}
 
