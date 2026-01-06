@@ -133,8 +133,20 @@ IMPORTANT RULES (follow strictly):
 
 
 
-def build_product_enquiry_prompt(user_message: str, iphone_stock_json: str) -> str:
+def build_product_enquiry_prompt(
+    user_message: str,
+    iphone_stock_json: str,
+    conversation_summary: str = "",
+) -> str:
     """Return a Gemini-ready prompt used when a product enquiry is detected."""
+
+    summary_section = ""
+    if conversation_summary:
+        summary_section = (
+            "\nConversation summary:\n"
+            f"\"\"\"\n{conversation_summary}\n\"\"\"\n\n"
+            "Use the summary to avoid repeating prior proposals and focus on unmet needs.\n"
+        )
 
     system_prompt = """
 You are a CompAsia sales agent.
@@ -149,13 +161,18 @@ Rules:
 - Ask ONE follow-up question
 - Sound natural and polite
 
+{summary_section}
+
 Available stock:
 {iphone_stock_json}
 """
 
     print("Hello_json:", iphone_stock_json)
 
-    formatted_system = system_prompt.format(iphone_stock_json=iphone_stock_json)
+    formatted_system = system_prompt.format(
+        iphone_stock_json=iphone_stock_json,
+        summary_section=summary_section,
+    )
     return (
         f"{formatted_system}\n\n"
         f"User message:\n{user_message}\n\n"
@@ -250,7 +267,11 @@ def engine_match(
 
     if match == "PRODUCT_ENQUIRE":
         stock_json = iphone_stock_json or _load_default_iphone_stock_json()
-        sales_prompt = build_product_enquiry_prompt(user_question, stock_json)
+        sales_prompt = build_product_enquiry_prompt(
+            user_question,
+            stock_json,
+            conversation_summary=conversation_summary,
+        )
         client = _get_gemini_client()
         sales_response = client.models.generate_content(
             model=DEFAULT_GEMINI_MODEL,

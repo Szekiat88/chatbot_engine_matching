@@ -284,11 +284,16 @@ def product_prompt_endpoint() -> tuple[Any, int]:
     payload = request.get_json(silent=True) or {}
     user_message = payload.get("user_message", "")
     iphone_stock_json = payload.get("iphone_stock_json", "")
+    conversation_summary = payload.get("conversation_summary", "")
 
     if not isinstance(user_message, str) or not user_message.strip():
         return jsonify({"error": "user_message cannot be empty."}), 400
 
-    prompt = build_product_enquiry_prompt(user_message, iphone_stock_json)
+    prompt = build_product_enquiry_prompt(
+        user_message,
+        iphone_stock_json,
+        conversation_summary=conversation_summary,
+    )
     return jsonify({"prompt": prompt}), 200
 
 
