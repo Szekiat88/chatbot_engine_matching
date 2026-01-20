@@ -182,6 +182,7 @@ def engine_match_endpoint() -> tuple[Any, int]:
     question = payload.get("question", "")
     provider = payload.get("provider", "gemini")
     conversation_summary = payload.get("conversation_summary", "")
+    print("HelloConversationSummary: ", conversation_summary)
     iphone_stock_json = payload.get("iphone_stock_json", "")
     knowledge_path = payload.get("knowledge_path")
     knowledge_sheet = payload.get("knowledge_sheet")

@@ -73,6 +73,7 @@ def _build_prompt(
     options: Iterable[str],
     conversation_summary: str = "",
 ) -> str:
+    print("Helloconversation_summary ", conversation_summary)
     summary_section = ""
     if conversation_summary:
         summary_section = (
@@ -80,6 +81,7 @@ def _build_prompt(
             f"\"\"\"\n{conversation_summary}\n\"\"\"\n\n"
             "Use this summary to maintain context. If it is unrelated, ignore it and continue normally.\n"
         )
+        print("HelloSummarySection: ", summary_section)
 
     return f"""
 You are a Compasia customer service representative for a leading second-hand HP device seller.
@@ -194,6 +196,8 @@ Available stock:
 def detect_escalation(user_question: str) -> Tuple[bool, str]:
     _ensure_access_allowed()
     text = user_question.lower()
+
+    print("HelloText: ", text)
     greeting_keywords = [
         "hi",
         "hello",
@@ -231,6 +235,7 @@ def detect_escalation(user_question: str) -> Tuple[bool, str]:
 
     if any(term in text for term in human_keywords):
         return True, "I'll connect you with a human representative. Please share your preferred contact details so we can follow up."
+    
 
     return False, ""
 
@@ -396,8 +401,8 @@ def summarize_conversation(
 
     transcript = "\n".join(history_lines)
     summary_section = ""
-    if cleaned_previous_summary:
-        summary_section = f"Previous summary:\n\"\"\"\n{cleaned_previous_summary}\n\"\"\"\n\n"
+    # if cleaned_previous_summary:
+    summary_section = f"Previous summary:\n\"\"\"\n{previous_summary}\n\"\"\"\n\n"
     prompt = (
         "You are assisting a Compasia support agent. Update the existing summary with the new conversation "
         "messages below. Provide a concise, neutral summary in two to three sentences, focusing on the "
@@ -408,6 +413,8 @@ def summarize_conversation(
         f"{summary_section}"
         f"New conversation transcript:\n\"\"\"\n{transcript}\n\"\"\""
     )
+
+    print("HelloPrompt: ", prompt)
 
     provider_name = provider.lower()
 
