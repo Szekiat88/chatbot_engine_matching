@@ -193,6 +193,51 @@ def append_rows_to_sheet(df: pd.DataFrame, path, sheet_name: str) -> pd.DataFram
     return combined_df
 
 
+def format_mia_counts(counts: dict[str, int], label_prefix: str = "MIA") -> str:
+    """Format MIA count dictionaries as a compact string.
+
+    The returned string omits entries whose values are zero. For example, a
+    dictionary like ``{"0": 0, "1": 3, "2": 3, "3": 0, "5_plus": 0}`` becomes
+    ``"MIA-1: 3, MIA-2: 3"``.
+    """
+
+    if not isinstance(counts, dict):
+        raise TypeError("MIA counts must be provided as a dictionary.")
+
+    order = ["0", "1", "2", "3", "5_plus"]
+    label_map = {
+        "0": f"{label_prefix}-0",
+        "1": f"{label_prefix}-1",
+        "2": f"{label_prefix}-2",
+        "3": f"{label_prefix}-3",
+        "5_plus": f"{label_prefix}-5+",
+    }
+
+    parts: list[str] = []
+    for key in order:
+        value = counts.get(key, 0)
+        if isinstance(value, bool):
+            value = int(value)
+        if isinstance(value, (int, float)) and value != 0:
+            parts.append(f"{label_map[key]}: {int(value)}")
+
+    return ", ".join(parts)
+
+
+def format_six_month_mia(payload: dict[str, object]) -> str:
+    """Extract and format the six-month MIA counts from a nested payload."""
+
+    if not isinstance(payload, dict):
+        raise TypeError("Six-month MIA payload must be a dictionary.")
+
+    six_month_key = "next_six_numbers_digit_counts_0_1_2_3_5_plus"
+    counts = payload.get(six_month_key, {})
+    if not isinstance(counts, dict):
+        raise TypeError("Six-month MIA counts must be a dictionary.")
+
+    return format_mia_counts(counts)
+
+
 def save_dataframe_to_excel(df, path, sheet_name, column_positions=None):
     """Persist a DataFrame back to a specific worksheet.
 
