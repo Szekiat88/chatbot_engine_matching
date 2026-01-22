@@ -151,7 +151,7 @@ def build_product_enquiry_prompt(
             "Use the summary to avoid repeating prior proposals and focus on unmet needs.\n"
         )
 
-    system_prompt = """
+    system_prompt = f"""
 You are a CompAsia sales agent.
 
 Your role is to act like a friendly, human sales consultant.
@@ -165,14 +165,14 @@ Rules:
 - Sound natural and polite
 - If the customer has clearly confirmed intent to buy and has specified the exact model, storage, and color,
   respond ONLY with a JSON object containing:
-  {
+  {{
     "phone_type": <model>,
     "price": <number from available stock>,
     "color": <color>,
     "storage": <storage>,
     "send_shopify_link": true,
     "shopify_link": "https://compasia.my/products/<phone_type>-<storage>"
-  }
+  }}
   Do not include any extra text when returning this JSON.
 
 {summary_section}
@@ -182,13 +182,8 @@ Available stock:
 """
 
     print("Hello_json:", iphone_stock_json)
-
-    formatted_system = system_prompt.format(
-        iphone_stock_json=iphone_stock_json,
-        summary_section=summary_section,
-    )
     return (
-        f"{formatted_system}\n\n"
+        f"{system_prompt}\n\n"
         f"User message:\n{user_message}\n\n"
         "Respond as a friendly sales consultant using the rules above."
     )
