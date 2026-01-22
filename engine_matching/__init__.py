@@ -24,7 +24,7 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 ACCESS_ALLOWED = os.getenv("ENGINE_MATCHING_ENABLED", "true").lower() in {"1", "true", "yes"}
 
@@ -42,6 +42,7 @@ def _get_gemini_client() -> genai.Client:
         raise RuntimeError(
             "Set the GEMINI_API_KEY environment variable before using the Gemini model."
         )
+    
     return genai.Client(api_key=GEMINI_API_KEY)
 
 

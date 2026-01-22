@@ -29,7 +29,7 @@ DEFAULT_KNOWLEDGE_PATH = Path(
     os.getenv("ENGINE_MATCHING_KB_PATH", BASE_DIR / "data" / "Samples.xlsx")
 )
 DEFAULT_KNOWLEDGE_SHEET = os.getenv("ENGINE_MATCHING_KB_SHEET", "Main DB")
-DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-pro")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
 app = Flask(__name__)
