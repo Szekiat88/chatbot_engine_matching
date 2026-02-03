@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from decimal import Decimal
 from pathlib import Path
 from typing import Iterable, Tuple
 
@@ -44,7 +45,18 @@ def _split_table_name(table_name: str) -> tuple[str, str]:
 def _build_llm_schema_json(table_name: str) -> str:
     schema_name, table = _split_table_name(table_name)
     profile = fetch_llm_table_profile(table, schema=schema_name)
-    return json.dumps(profile, indent=2, ensure_ascii=False)
+    return json.dumps(
+        profile,
+        indent=2,
+        ensure_ascii=False,
+        default=_json_default,
+    )
+
+
+def _json_default(value: object) -> object:
+    if isinstance(value, Decimal):
+        return float(value)
+    raise TypeError(f"Object of type {value.__class__.__name__} is not JSON serializable")
 
 
 def _try_parse_llm_schema(stock_table_schema: str) -> str | None:
