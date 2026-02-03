@@ -11,12 +11,16 @@ from dotenv import load_dotenv
 import google.genai as genai
 from openai import OpenAI
 
+from .db import fetch_stock_rows, get_postgres_connection
+
 __all__ = [
     "detect_escalation",
     "engine_match",
     "summarize_conversation",
     "find_relevant_history_reply",
     "build_product_enquiry_prompt",
+    "fetch_stock_rows",
+    "get_postgres_connection",
 ]
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +31,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 ACCESS_ALLOWED = os.getenv("ENGINE_MATCHING_ENABLED", "true").lower() in {"1", "true", "yes"}
+DEFAULT_STOCK_TABLE = os.getenv("STOCK_TABLE", "shopify_variant_new")
 
 
 def _ensure_access_allowed() -> None:
@@ -55,18 +60,23 @@ def _get_openai_client() -> OpenAI:
     return OpenAI(api_key=OPENAI_API_KEY)
 
 
-def _load_default_iphone_stock_json() -> str:
-    """Load the bundled iPhone stock listing.
+def _build_default_stock_schema() -> str:
+    """Return the default SQL schema definition for the stock table."""
 
-    Returns
-    -------
-    str
-        The raw JSON string for the default iPhone stock.
-    """
-
-    stock_path = PROJECT_ROOT / "data" / "iphone_stock.json"
-    with stock_path.open("r", encoding="utf-8") as fp:
-        return fp.read()
+    return (
+        "CREATE TABLE shopify_variant_new (\n"
+        "  product_id        BIGINT NOT NULL,\n"
+        "  variant_id        BIGINT NOT NULL,\n"
+        "  color             TEXT,\n"
+        "  spec              TEXT,\n"
+        "  condition         TEXT,\n"
+        "  price             NUMERIC(12,2),\n"
+        "  handle            TEXT,\n"
+        "  vendor            TEXT,\n"
+        "  product_type      TEXT,\n"
+        "  tenure            TEXT\n"
+        ");"
+    )
 
 
 def _build_prompt(
@@ -138,7 +148,7 @@ IMPORTANT RULES (follow strictly):
 
 def build_product_enquiry_prompt(
     user_message: str,
-    iphone_stock_json: str,
+    stock_table_schema: str,
     conversation_summary: str = "",
 ) -> str:
     """Return a Gemini-ready prompt used when a product enquiry is detected."""
@@ -151,41 +161,36 @@ def build_product_enquiry_prompt(
             "Use the summary to avoid repeating prior proposals and focus on unmet needs.\n"
         )
 
+    schema = stock_table_schema.strip() or _build_default_stock_schema()
     system_prompt = f"""
 You are a CompAsia sales agent.
 
 Your role is to act like a friendly, human sales consultant.
-Help customers choose a suitable iPhone based on their needs.
+Help customers choose a suitable device based on their needs.
 
 Rules:
-- Recommend ONLY from available stock
-- Make the sentence short and clear, like a human talking
-- Propose 1 models only
-- Ask ONE follow-up question
-- Sound natural and polite
-- If the customer has clearly confirmed intent to buy and has specified the exact model, storage, and color,
-  respond ONLY with a JSON object containing:
-  {{
-    "phone_type": <model>,
-    "price": <number from available stock>,
-    "color": <color>,
-    "storage": <storage>,
-    "send_shopify_link": true,
-    "shopify_link": "https://compasia.my/products/<phone_type>-<storage>"
-  }}
-  Do not include any extra text when returning this JSON.
+- Recommend ONLY from available stock stored in the database.
+- First, understand the table structure from the schema.
+- Then produce a SQL query (script) that retrieves matching stock.
+- Use PostgreSQL syntax and the schema below.
+- Use the exact table name from the schema.
+- Select only relevant columns needed to recommend a single best option.
+- Always limit the result set to the top 5 rows.
+- Prefer lower price and better condition (Excellent > Fair).
+- If the user specifies exact model, storage, and color, filter for exact matches.
+- Return ONLY the SQL query (no explanations, no markdown).
 
 {summary_section}
 
-Available stock:
-{iphone_stock_json}
+Database schema (DDL):
+{schema}
 """
 
-    print("Hello_json:", iphone_stock_json)
+    print("Hello_schema:", schema)
     return (
         f"{system_prompt}\n\n"
         f"User message:\n{user_message}\n\n"
-        "Respond as a friendly sales consultant using the rules above."
+        "Generate the SQL query now."
     )
 
 
@@ -241,7 +246,7 @@ def engine_match(
     knowledge_df,
     provider: str = "gemini",
     conversation_summary: str = "",
-    iphone_stock_json: str = "",
+    stock_table_schema: str = "",
 ) -> Tuple[str, float, object | None]:
     _ensure_access_allowed()
     keyword_series = knowledge_df["keyword"].astype(str).str.strip()
@@ -278,10 +283,10 @@ def engine_match(
         raise ValueError("provider must be either 'gemini' or 'openai'")
 
     if match == "PRODUCT_ENQUIRE":
-        stock_json = iphone_stock_json or _load_default_iphone_stock_json()
+        schema = stock_table_schema or _build_default_stock_schema()
         sales_prompt = build_product_enquiry_prompt(
             user_question,
-            stock_json,
+            schema,
             conversation_summary=conversation_summary,
         )
         client = _get_gemini_client()

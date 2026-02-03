@@ -183,7 +183,9 @@ def engine_match_endpoint() -> tuple[Any, int]:
     provider = payload.get("provider", "gemini")
     conversation_summary = payload.get("conversation_summary", "")
     print("HelloConversationSummary: ", conversation_summary)
-    iphone_stock_json = payload.get("iphone_stock_json", "")
+    stock_table_schema = payload.get("stock_table_schema", "")
+    if not stock_table_schema:
+        stock_table_schema = payload.get("iphone_stock_json", "")
     knowledge_path = payload.get("knowledge_path")
     knowledge_sheet = payload.get("knowledge_sheet")
 
@@ -196,7 +198,7 @@ def engine_match_endpoint() -> tuple[Any, int]:
         knowledge_df,
         provider=provider,
         conversation_summary=conversation_summary,
-        iphone_stock_json=iphone_stock_json,
+        stock_table_schema=stock_table_schema,
     )
 
     if isinstance(matched_row, pd.Series):
@@ -284,7 +286,9 @@ def history_reply_endpoint() -> tuple[Any, int]:
 def product_prompt_endpoint() -> tuple[Any, int]:
     payload = request.get_json(silent=True) or {}
     user_message = payload.get("user_message", "")
-    iphone_stock_json = payload.get("iphone_stock_json", "")
+    stock_table_schema = payload.get("stock_table_schema", "")
+    if not stock_table_schema:
+        stock_table_schema = payload.get("iphone_stock_json", "")
     conversation_summary = payload.get("conversation_summary", "")
 
     if not isinstance(user_message, str) or not user_message.strip():
@@ -292,7 +296,7 @@ def product_prompt_endpoint() -> tuple[Any, int]:
 
     prompt = build_product_enquiry_prompt(
         user_message,
-        iphone_stock_json,
+        stock_table_schema,
         conversation_summary=conversation_summary,
     )
     return jsonify({"prompt": prompt}), 200
