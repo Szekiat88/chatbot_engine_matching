@@ -219,6 +219,7 @@ Rules:
 - Prefer filtering using common values from top_values when available.
 - The handle column contains the product type and product name; use it to match and recommend products.
 - If handle includes all_values, prefer matching against those values.
+- Prefer LIKE (e.g. ILIKE) for filtering over equality unless the user explicitly asks for an exact match.
 - Return ONLY the SQL query (no explanations, no markdown).
 
 {summary_section}
