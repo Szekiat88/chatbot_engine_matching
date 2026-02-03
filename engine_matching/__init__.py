@@ -187,14 +187,8 @@ def build_product_enquiry_prompt(
         )
 
     schema = stock_table_schema.strip()
-    llm_schema_json = _try_parse_llm_schema(schema)
-    if not llm_schema_json and not schema:
-        try:
-            llm_schema_json = _build_llm_schema_json(DEFAULT_STOCK_TABLE)
-        except Exception:
-            llm_schema_json = None
-    if not schema and not llm_schema_json:
-        schema = _build_default_stock_schema()
+    llm_schema_json = _build_llm_schema_json(DEFAULT_STOCK_TABLE)
+    print("HelloLLMSchemaJSON: ", llm_schema_json)
     system_prompt = f"""
 You are a PostgreSQL SQL generator.
 You are a CompAsia sales agent.
@@ -233,7 +227,7 @@ Rules:
 
     system_prompt = f"{system_prompt}\n{schema_block}"
 
-    print("Hello_schema:", llm_schema_json or schema)
+    print("Hello_schema:", system_prompt)
     return (
         f"{system_prompt}\n\n"
         f"User message:\n{user_message}\n\n"
@@ -330,7 +324,7 @@ def engine_match(
         raise ValueError("provider must be either 'gemini' or 'openai'")
 
     if match == "PRODUCT_ENQUIRE":
-        schema = stock_table_schema or _build_default_stock_schema()
+        schema = _build_default_stock_schema()
         sales_prompt = build_product_enquiry_prompt(
             user_question,
             schema,
@@ -342,6 +336,7 @@ def engine_match(
             contents=sales_prompt,
         )
         sql_query = sales_response.text.strip()
+        print("HelloSQLQuery: ", sql_query)
         matched_row = fetch_stock_rows(sql_query)
         return match, score, matched_row
 
