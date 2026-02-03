@@ -183,6 +183,18 @@ def fetch_llm_table_profile(
                     )
                     col_info["top_values"] = top_vals
 
+                if name == "handle":
+                    handle_values = _fetch_all(
+                        cursor,
+                        f"""
+                        SELECT DISTINCT {_qident(name)} AS value
+                        FROM {qualified_table}
+                        WHERE {_qident(name)} IS NOT NULL
+                        ORDER BY {_qident(name)};
+                        """.strip(),
+                    )
+                    col_info["all_values"] = handle_values
+
                 profile.append(col_info)
 
             samples: list[dict[str, Any]] = []

@@ -217,6 +217,8 @@ Rules:
 - Use ONLY the columns provided.
 - Do NOT invent columns.
 - Prefer filtering using common values from top_values when available.
+- The handle column contains the product type and product name; use it to match and recommend products.
+- If handle includes all_values, prefer matching against those values.
 - Return ONLY the SQL query (no explanations, no markdown).
 
 {summary_section}
