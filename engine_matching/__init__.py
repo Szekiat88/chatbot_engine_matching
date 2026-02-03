@@ -294,9 +294,8 @@ def engine_match(
             model=DEFAULT_GEMINI_MODEL,
             contents=sales_prompt,
         )
-        print("\n Hello_Prompt: ", sales_prompt)
-        print("\n Hello_strip: ", sales_response.text.strip() )
-        matched_row = sales_response.text.strip()
+        sql_query = sales_response.text.strip()
+        matched_row = fetch_stock_rows(sql_query)
         return match, score, matched_row
 
     normalized_match = match.lower()
