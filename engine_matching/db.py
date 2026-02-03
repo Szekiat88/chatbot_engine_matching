@@ -12,7 +12,7 @@ DEFAULT_DB_HOST = os.getenv("PGHOST", "localhost")
 DEFAULT_DB_PORT = int(os.getenv("PGPORT", "5431"))
 DEFAULT_DB_NAME = os.getenv("PGDATABASE", "ai-grading-uat")
 DEFAULT_DB_USER = os.getenv("PGUSER", "szekiat")
-DEFAULT_DB_PASSWORD = os.getenv("PGPASSWORD", "")
+DEFAULT_DB_PASSWORD = os.getenv("PGPASSWORD", "jIL:Y6d>09[^")
 
 
 def get_postgres_connection(
