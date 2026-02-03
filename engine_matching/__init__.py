@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import google.genai as genai
 from openai import OpenAI
 
-from .db import fetch_stock_rows, get_postgres_connection
+from .db import fetch_llm_table_profile, fetch_stock_rows, get_postgres_connection
 
 __all__ = [
     "detect_escalation",
@@ -32,6 +32,31 @@ DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 ACCESS_ALLOWED = os.getenv("ENGINE_MATCHING_ENABLED", "true").lower() in {"1", "true", "yes"}
 DEFAULT_STOCK_TABLE = os.getenv("STOCK_TABLE", "shopify_variant_new")
+
+
+def _split_table_name(table_name: str) -> tuple[str, str]:
+    if "." in table_name:
+        schema, name = table_name.split(".", 1)
+        return schema, name
+    return "public", table_name
+
+
+def _build_llm_schema_json(table_name: str) -> str:
+    schema_name, table = _split_table_name(table_name)
+    profile = fetch_llm_table_profile(table, schema=schema_name)
+    return json.dumps(profile, indent=2, ensure_ascii=False)
+
+
+def _try_parse_llm_schema(stock_table_schema: str) -> str | None:
+    if not stock_table_schema:
+        return None
+    try:
+        parsed = json.loads(stock_table_schema)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(parsed, dict) and {"columns", "table"}.issubset(parsed.keys()):
+        return json.dumps(parsed, indent=2, ensure_ascii=False)
+    return None
 
 
 def _ensure_access_allowed() -> None:
@@ -161,8 +186,17 @@ def build_product_enquiry_prompt(
             "Use the summary to avoid repeating prior proposals and focus on unmet needs.\n"
         )
 
-    schema = stock_table_schema.strip() or _build_default_stock_schema()
+    schema = stock_table_schema.strip()
+    llm_schema_json = _try_parse_llm_schema(schema)
+    if not llm_schema_json and not schema:
+        try:
+            llm_schema_json = _build_llm_schema_json(DEFAULT_STOCK_TABLE)
+        except Exception:
+            llm_schema_json = None
+    if not schema and not llm_schema_json:
+        schema = _build_default_stock_schema()
     system_prompt = f"""
+You are a PostgreSQL SQL generator.
 You are a CompAsia sales agent.
 
 Your role is to act like a friendly, human sales consultant.
@@ -178,15 +212,25 @@ Rules:
 - Always limit the result set to the top 5 rows.
 - Prefer lower price and better condition (Excellent > Fair).
 - If the user specifies exact model, storage, and color, filter for exact matches.
+- You have ONE table only.
+- No joins are allowed.
+- Use ONLY the columns provided.
+- Do NOT invent columns.
+- Prefer filtering using common values from top_values when available.
 - Return ONLY the SQL query (no explanations, no markdown).
 
 {summary_section}
-
-Database schema (DDL):
-{schema}
 """
 
-    print("Hello_schema:", schema)
+    schema_block = ""
+    if llm_schema_json:
+        schema_block = f"Schema (JSON):\n{llm_schema_json}\n"
+    else:
+        schema_block = f"Database schema (DDL):\n{schema}\n"
+
+    system_prompt = f"{system_prompt}\n{schema_block}"
+
+    print("Hello_schema:", llm_schema_json or schema)
     return (
         f"{system_prompt}\n\n"
         f"User message:\n{user_message}\n\n"
