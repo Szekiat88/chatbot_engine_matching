@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from decimal import Decimal
 from pathlib import Path
 from typing import Iterable, Tuple
@@ -247,6 +248,37 @@ Rules:
     )
 
 
+def _extract_sql_query(response_text: str) -> str | None:
+    if not isinstance(response_text, str):
+        return None
+
+    text = response_text.strip()
+    if not text:
+        return None
+
+    fenced_match = re.search(r"```(?:sql)?\s*(.*?)```", text, flags=re.IGNORECASE | re.DOTALL)
+    if fenced_match:
+        text = fenced_match.group(1).strip()
+
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if lines and lines[0].lower() == "sql":
+        text = "\n".join(lines[1:]).strip()
+    else:
+        text = "\n".join(lines).strip()
+
+    if not text:
+        return None
+
+    select_match = re.search(r"\bselect\b", text, flags=re.IGNORECASE)
+    if not select_match:
+        return None
+
+    sql = text[select_match.start():].strip()
+    if not sql.lower().startswith("select"):
+        return None
+    return sql
+
+
 def detect_escalation(user_question: str) -> Tuple[bool, str]:
     _ensure_access_allowed()
     text = user_question.lower()
@@ -347,7 +379,9 @@ def engine_match(
             model=DEFAULT_GEMINI_MODEL,
             contents=sales_prompt,
         )
-        sql_query = sales_response.text.strip()
+        sql_query = _extract_sql_query(sales_response.text)
+        if not sql_query:
+            return match, score, []
         print("HelloSQLQuery: ", sql_query)
         matched_row = fetch_stock_rows(sql_query)
         return match, score, matched_row
