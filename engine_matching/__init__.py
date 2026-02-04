@@ -122,6 +122,7 @@ def _build_prompt(
     options: Iterable[str],
     conversation_summary: str = "",
 ) -> str:
+    conversation_summary = _normalize_conversation_summary(conversation_summary)
     print("Helloconversation_summary ", conversation_summary)
     summary_section = ""
     if conversation_summary:
@@ -190,7 +191,7 @@ def build_product_enquiry_prompt(
     conversation_summary: str = "",
 ) -> str:
     """Return a Gemini-ready prompt used when a product enquiry is detected."""
-
+    conversation_summary = _normalize_conversation_summary(conversation_summary)
     summary_section = ""
     if conversation_summary:
         summary_section = (
@@ -277,6 +278,15 @@ def _extract_sql_query(response_text: str) -> str | None:
     if not sql.lower().startswith("select"):
         return None
     return sql
+
+
+def _normalize_conversation_summary(summary: object) -> str:
+    if summary is None:
+        return ""
+    if isinstance(summary, list):
+        cleaned = [str(item).strip() for item in summary if str(item).strip()]
+        return "\n".join(cleaned)
+    return str(summary).strip()
 
 
 def detect_escalation(user_question: str) -> Tuple[bool, str]:
@@ -483,7 +493,7 @@ def summarize_conversation(
     _ensure_access_allowed()
 
     history_lines = [str(message).strip() for message in conversation_history if str(message).strip()]
-    cleaned_previous_summary = previous_summary.strip()
+    cleaned_previous_summary = _normalize_conversation_summary(previous_summary)
     if not history_lines:
         return cleaned_previous_summary
 
