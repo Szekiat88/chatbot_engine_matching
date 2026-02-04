@@ -182,6 +182,8 @@ def engine_match_endpoint() -> tuple[Any, int]:
     question = payload.get("question", "")
     provider = payload.get("provider", "gemini")
     conversation_summary = payload.get("conversation_summary", "")
+    conversation_history = payload.get("conversation_history", [])
+    previous_summary = payload.get("previous_summary", "")
     print("HelloConversationSummary: ", conversation_summary)
     stock_table_schema = payload.get("stock_table_schema", "")
     if not stock_table_schema:
@@ -191,13 +193,22 @@ def engine_match_endpoint() -> tuple[Any, int]:
 
     if not isinstance(question, str) or not question.strip():
         return jsonify({"error": "Question cannot be empty."}), 400
+    if not isinstance(conversation_history, list):
+        return jsonify({"error": "conversation_history must be a list."}), 400
 
     knowledge_df = _get_knowledge_df(knowledge_path, knowledge_sheet)
+    summary = conversation_summary
+    if conversation_history:
+        summary = summarize_conversation(
+            conversation_history,
+            provider=provider,
+            previous_summary=previous_summary,
+        )
     match, score, matched_row = engine_match(
         question,
         knowledge_df,
         provider=provider,
-        conversation_summary=conversation_summary,
+        conversation_summary=summary,
         stock_table_schema=stock_table_schema,
     )
 
@@ -211,6 +222,7 @@ def engine_match_endpoint() -> tuple[Any, int]:
             "match": match,
             "score": score,
             "matched_row": matched_payload,
+            "summary": summary,
         }),
         200,
     )
