@@ -38,6 +38,15 @@ app = Flask(__name__)
 _knowledge_df: pd.DataFrame | None = None
 
 
+def _normalize_summary(summary: Any) -> str:
+    if summary is None:
+        return ""
+    if isinstance(summary, list):
+        cleaned = [str(item).strip() for item in summary if str(item).strip()]
+        return "\n".join(cleaned)
+    return str(summary).strip()
+
+
 def _get_knowledge_df(
     knowledge_path: str | Path | None = None,
     knowledge_sheet: str | None = None,
@@ -181,9 +190,9 @@ def engine_match_endpoint() -> tuple[Any, int]:
     payload = request.get_json(silent=True) or {}
     question = payload.get("question", "")
     provider = payload.get("provider", "gemini")
-    conversation_summary = payload.get("conversation_summary", "")
+    conversation_summary = _normalize_summary(payload.get("conversation_summary", ""))
     conversation_history = payload.get("conversation_history", [])
-    previous_summary = payload.get("previous_summary", "")
+    previous_summary = _normalize_summary(payload.get("previous_summary", ""))
     print("HelloConversationSummary: ", conversation_summary)
     stock_table_schema = payload.get("stock_table_schema", "")
     if not stock_table_schema:
@@ -216,6 +225,18 @@ def engine_match_endpoint() -> tuple[Any, int]:
         matched_payload: Any = matched_row.to_dict()
     else:
         matched_payload = matched_row
+
+    if not conversation_history and not summary and question.strip():
+        summary_input = [f"Customer: {question.strip()}"]
+        if matched_payload is not None:
+            summary_input.append(
+                f"Agent: {json.dumps(matched_payload, ensure_ascii=False)}"
+            )
+        summary = summarize_conversation(
+            summary_input,
+            provider=provider,
+            previous_summary=previous_summary,
+        )
 
     return (
         jsonify({
@@ -250,7 +271,7 @@ def summarize_endpoint() -> tuple[Any, int]:
     question = payload.get("question", "")
     answer = payload.get("answer", "")
     provider = payload.get("provider", "gemini")
-    previous_summary = payload.get("previous_summary", "")
+    previous_summary = _normalize_summary(payload.get("previous_summary", ""))
 
     if not isinstance(conversation_history, list):
         return jsonify({"error": "conversation_history must be a list."}), 400
@@ -301,7 +322,7 @@ def product_prompt_endpoint() -> tuple[Any, int]:
     stock_table_schema = payload.get("stock_table_schema", "")
     if not stock_table_schema:
         stock_table_schema = payload.get("iphone_stock_json", "")
-    conversation_summary = payload.get("conversation_summary", "")
+    conversation_summary = _normalize_summary(payload.get("conversation_summary", ""))
 
     if not isinstance(user_message, str) or not user_message.strip():
         return jsonify({"error": "user_message cannot be empty."}), 400
