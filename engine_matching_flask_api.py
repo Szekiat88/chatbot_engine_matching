@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,28 @@ app = Flask(__name__)
 
 
 _knowledge_df: pd.DataFrame | None = None
+
+
+class DecimalJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles Decimal objects."""
+    
+    def default(self, obj: Any) -> Any:
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
+
+
+def _convert_decimals_to_floats(obj: Any) -> Any:
+    """Recursively convert Decimal objects to floats in dictionaries and lists."""
+    if isinstance(obj, Decimal):
+        return float(obj)
+    if isinstance(obj, dict):
+        return {key: _convert_decimals_to_floats(value) for key, value in obj.items()}
+    if isinstance(obj, list):
+        return [_convert_decimals_to_floats(item) for item in obj]
+    if isinstance(obj, pd.Series):
+        return {key: _convert_decimals_to_floats(value) for key, value in obj.items()}
+    return obj
 
 
 def _normalize_summary(summary: Any) -> str:
@@ -226,11 +249,14 @@ def engine_match_endpoint() -> tuple[Any, int]:
     else:
         matched_payload = matched_row
 
+    # Convert Decimal objects to floats for JSON serialization
+    matched_payload = _convert_decimals_to_floats(matched_payload) if matched_payload is not None else None
+
     if not conversation_history and not summary and question.strip():
         summary_input = [f"Customer: {question.strip()}"]
         if matched_payload is not None:
             summary_input.append(
-                f"Agent: {json.dumps(matched_payload, ensure_ascii=False)}"
+                f"Agent: {json.dumps(matched_payload, ensure_ascii=False, cls=DecimalJSONEncoder)}"
             )
         summary = summarize_conversation(
             summary_input,
