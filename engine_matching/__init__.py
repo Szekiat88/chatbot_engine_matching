@@ -32,6 +32,7 @@ DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 ACCESS_ALLOWED = os.getenv("ENGINE_MATCHING_ENABLED", "true").lower() in {"1", "true", "yes"}
 DEFAULT_STOCK_TABLE = os.getenv("STOCK_TABLE", "shopify_variant_new")
+LOG_TICKET = "log_ticket"
 
 
 def _split_table_name(table_name: str) -> tuple[str, str]:
@@ -141,7 +142,13 @@ IMPORTANT RULES (follow strictly):
 1. If the conversation summary OR user question shows the user wants to buy a phone, asks about phone functionality, or otherwise makes a product enquiry, return exactly:
    "PRODUCT_ENQUIRE"
 
-2. If the conversation summary OR user question contains personal details such as:
+2. If the conversation summary OR user question shows the user wants to talk to a human, speak to an agent, or log / raise / open a ticket, return exactly:
+   "log_ticket"
+
+3. If the conversation summary OR user question shows the user already contacted customer service, already spoke to an agent, or already has a logged ticket, return exactly:
+   "TICKET_LOGGED"
+
+4. If the conversation summary OR user question contains personal details such as:
    - Full name
    - IC number
    - Order ID
@@ -152,18 +159,19 @@ IMPORTANT RULES (follow strictly):
    Then return exactly:
    "TICKET_LOGGED"
 
-3. If NO personal details are found and you find a strong match with the knowledge base,
+5. If NO personal details are found and you find a strong match with the knowledge base,
    return ONLY the exact matching question from the List of possible questions.
 
-4. If no suitable knowledge-base match exists and it should remain a live conversation,
+6. If no suitable knowledge-base match exists and it should remain a live conversation,
    return exactly:
    "NO_MATCH"
 
-5. Do NOT explain your reasoning.
-6. Do NOT return anything other than:
+7. Do NOT explain your reasoning.
+8. Do NOT return anything other than:
    - "PRODUCT_ENQUIRE"
    - One exact question from the list
    - "NO_MATCH"
+   - "log_ticket"
    - "TICKET_LOGGED"
 
 """
@@ -274,15 +282,32 @@ def detect_escalation(user_question: str) -> Tuple[bool, str]:
         "live agent",
         "real person",
     ]
+    ticket_logged_keywords = [
+        "ticket logged",
+        "ticket was logged",
+        "ticket has been logged",
+        "already logged a ticket",
+        "already raised a ticket",
+        "already opened a ticket",
+        "already contacted customer service",
+        "already contacted support",
+        "already spoke to agent",
+        "already talked to agent",
+        "already went to cs",
+        "went to cs",
+    ]
     
     if any(text == term or text.startswith(f"{term} ") for term in greeting_keywords):
         return True, "How can I help you today?"
 
-    if any(term in text for term in ticket_keywords):
-        return True, "I can help you log a support ticket. Please provide more details about the issue so I can submit it."
+    if any(term in text for term in ticket_logged_keywords):
+        return True, "TICKET_LOGGED"
 
     if any(term in text for term in human_keywords):
-        return True, "I'll connect you with a human representative. Please share your preferred contact details so we can follow up."
+        return True, LOG_TICKET
+
+    if any(term in text for term in ticket_keywords):
+        return True, LOG_TICKET
     
 
     return False, ""
@@ -329,6 +354,18 @@ def engine_match(
     else:
         raise ValueError("provider must be either 'gemini' or 'openai'")
 
+    normalized_match = match.strip()
+    normalized_upper = normalized_match.upper()
+    normalized_lower = normalized_match.lower()
+
+    if normalized_upper == "TICKET_LOGGED" or normalized_lower == "ticket_logged":
+        match = "TICKET_LOGGED"
+    elif normalized_upper in {"LOGGING_TICKET", "LOG_TICKET"} or normalized_lower in {
+        "logging_ticket",
+        "log_ticket",
+    }:
+        match = LOG_TICKET
+
     if match == "PRODUCT_ENQUIRE":
         schema = stock_table_schema or _build_default_stock_schema()
         sales_prompt = build_product_enquiry_prompt(
@@ -345,9 +382,8 @@ def engine_match(
         matched_row = fetch_stock_rows(sql_query)
         return match, score, matched_row
 
-    normalized_match = match.lower()
     matched_rows = knowledge_df[
-        keyword_series.str.lower() == normalized_match
+        keyword_series.str.lower() == match.lower()
     ]
     matched_row = matched_rows.iloc[0] if not matched_rows.empty else None
 
