@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import google.genai as genai
 from openai import OpenAI
 
-from .db import fetch_llm_table_profile, fetch_stock_rows, get_postgres_connection
+from .db import fetch_llm_table_profile
 
 __all__ = [
     "detect_escalation",
@@ -19,8 +19,6 @@ __all__ = [
     "summarize_conversation",
     "find_relevant_history_reply",
     "build_product_enquiry_prompt",
-    "fetch_stock_rows",
-    "get_postgres_connection",
 ]
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -367,20 +365,7 @@ def engine_match(
         match = LOG_TICKET
 
     if match == "PRODUCT_ENQUIRE":
-        schema = stock_table_schema or _build_default_stock_schema()
-        sales_prompt = build_product_enquiry_prompt(
-            user_question,
-            schema,
-            conversation_summary=conversation_summary,
-        )
-        client = _get_gemini_client()
-        sales_response = client.models.generate_content(
-            model=DEFAULT_GEMINI_MODEL,
-            contents=sales_prompt,
-        )
-        sql_query = sales_response.text.strip()
-        matched_row = fetch_stock_rows(sql_query)
-        return match, score, matched_row
+        return match, score, []
 
     matched_rows = knowledge_df[
         keyword_series.str.lower() == match.lower()
